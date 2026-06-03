@@ -11,9 +11,16 @@ interface Props {
 }
 
 export default function ItemCard({ item, index, isActive, onClick }: Props) {
-  const s = calcStats(item.series);
   const store = STORES[item.store];
-  const drop = s.changePct <= 0;
+  const hasHistory = item.series.length > 1;
+
+  // Use real stats if series loaded, otherwise fall back to currentPrice from API
+  const currentPrice = hasHistory
+    ? calcStats(item.series).current
+    : (item.currentPrice ?? 0);
+
+  const changePct = hasHistory ? calcStats(item.series).changePct : 0;
+  const drop = changePct <= 0;
 
   return (
     <button
@@ -25,16 +32,20 @@ export default function ItemCard({ item, index, isActive, onClick }: Props) {
         <span className="pt-badge" style={{ color: store.c, background: store.bg }}>
           {store.name}
         </span>
-        <span className={`pt-delta ${drop ? "down" : "up"}`}>
-          {drop ? "▼" : "▲"} {Math.abs(s.changePct).toFixed(1)}%
-        </span>
+        {hasHistory && (
+          <span className={`pt-delta ${drop ? "down" : "up"}`}>
+            {drop ? "▼" : "▲"} {Math.abs(changePct).toFixed(1)}%
+          </span>
+        )}
       </div>
       <div className="pt-card-title">{item.title}</div>
       <div className="pt-card-bottom">
         <span className="pt-price-sm">
-          {fmt(s.current)} <i>Br</i>
+          {currentPrice ? <>{fmt(currentPrice)} <i>Br</i></> : <span style={{ color: "var(--faint)" }}>—</span>}
         </span>
-        <Sparkline series={item.series} color={drop ? "#5BE39A" : "#FF7A6B"} />
+        {hasHistory && (
+          <Sparkline series={item.series} color={drop ? "#5BE39A" : "#FF7A6B"} />
+        )}
       </div>
     </button>
   );

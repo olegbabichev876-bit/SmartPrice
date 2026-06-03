@@ -163,18 +163,22 @@
 
 /* ── tab navigation ── */
 .app-tabs {
-  display: flex; gap: 6px; padding: 16px 24px 0;
-  border-bottom: 1px solid #23262a; margin-bottom: 0;
+  display: flex; gap: 4px; padding: 16px 24px 0;
+  border-bottom: 1px solid #23262a;
   background: #0a0b0c;
+  position: sticky; top: 0; z-index: 10;
 }
 .app-tabs button {
   background: none; border: none; border-bottom: 2px solid transparent;
   color: var(--mut, #878d94); font-family: 'Sora', system-ui, sans-serif;
-  font-size: 14px; font-weight: 500; padding: 8px 16px 10px;
+  font-size: 14px; font-weight: 500; padding: 10px 20px 12px;
   cursor: pointer; transition: color .15s, border-color .15s;
+  border-radius: 8px 8px 0 0;
 }
-.app-tabs button:hover { color: #ECEBE6; }
+.app-tabs button:hover { color: #ECEBE6; background: rgba(255,255,255,.04); }
 .app-tabs button.on { color: #5BE39A; border-bottom-color: #5BE39A; }
+
+.app-content { padding: 0; }
 
 /* ── comparison header ── */
 .cmp-header {

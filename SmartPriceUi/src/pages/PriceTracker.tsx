@@ -13,10 +13,23 @@ export default function PriceTracker() {
     range, setRange,
     link, setLink,
     parse, track,
+    loading, historyLoading,
     activeId, setActiveId,
   } = useTracker();
 
-  const store = STORES[active.store];
+  // Пока список товаров грузится — спиннер на всю панель
+  if (loading) {
+    return (
+      <div className="pt-root" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
+        <span className="pt-spin" style={{ width: 28, height: 28, borderWidth: 3 }} />
+      </div>
+    );
+  }
+
+  const store = active ? STORES[active.store] : null;
+
+  // Текущая цена — из загруженной истории или из поля currentPrice
+  const displayPrice = stats?.current ?? active?.currentPrice ?? null;
 
   return (
     <div className="pt-root">
@@ -43,56 +56,99 @@ export default function PriceTracker() {
       {parse && <ParseBanner state={parse} />}
 
       <div className="pt-grid">
+        {/* ── список ── */}
         <aside className="pt-list">
-          <div className="pt-list-h">Отслеживаю · {items.length}</div>
-          {items.map((item, idx) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              index={idx}
-              isActive={item.id === activeId}
-              onClick={() => setActiveId(item.id)}
-            />
-          ))}
+          <div className="pt-list-h">
+            Отслеживаю · {items.length}
+          </div>
+
+          {items.length === 0 ? (
+            <div style={{ color: "var(--faint)", fontSize: 13, padding: "12px 2px" }}>
+              Добавь первый товар — вставь ссылку выше.
+            </div>
+          ) : (
+            items.map((item, idx) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                index={idx}
+                isActive={item.id === activeId}
+                onClick={() => setActiveId(item.id)}
+              />
+            ))
+          )}
         </aside>
 
+        {/* ── детальная панель ── */}
         <main className="pt-detail">
-          <div className="pt-detail-head">
-            <div>
-              <span className="pt-badge" style={{ color: store.c, background: store.bg }}>
-                {store.name}
-              </span>
-              <h2>{active.title}</h2>
-              <a className="pt-url" href="#">{active.url} ↗</a>
+          {!active ? (
+            <div style={{ textAlign: "center", padding: "60px 0", color: "var(--mut)" }}>
+              Выбери товар из списка
             </div>
-            <div className="pt-now">
-              <div className="pt-now-price">{fmt(stats.current)} <i>Br</i></div>
-              <div className={`pt-now-delta ${stats.changePct <= 0 ? "down" : "up"}`}>
-                {stats.changePct <= 0 ? "↓" : "↑"} {fmt(Math.abs(stats.current - stats.first))} Br
-                ({Math.abs(stats.changePct).toFixed(1)}%) за период
+          ) : (
+            <>
+              <div className="pt-detail-head">
+                <div>
+                  {store && (
+                    <span className="pt-badge" style={{ color: store.c, background: store.bg }}>
+                      {store.name}
+                    </span>
+                  )}
+                  <h2>{active.title}</h2>
+                  <a className="pt-url" href={`https://${active.url}`} target="_blank" rel="noreferrer">
+                    {active.url} ↗
+                  </a>
+                </div>
+                <div className="pt-now">
+                  {displayPrice !== null ? (
+                    <>
+                      <div className="pt-now-price">{fmt(displayPrice)} <i>Br</i></div>
+                      {stats && (
+                        <div className={`pt-now-delta ${stats.changePct <= 0 ? "down" : "up"}`}>
+                          {stats.changePct <= 0 ? "↓" : "↑"} {fmt(Math.abs(stats.current - stats.first))} Br
+                          ({Math.abs(stats.changePct).toFixed(1)}%) за период
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="pt-now-price" style={{ color: "var(--faint)" }}>—</div>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="pt-ranges">
-            {RANGE_OPTIONS.map((r) => (
-              <button
-                key={r.k}
-                className={range === r.k ? "on" : ""}
-                onClick={() => setRange(r.k)}
-              >
-                {r.l}
-              </button>
-            ))}
-            <div className="pt-target-pill" style={{ marginLeft: "auto" }}>
-              цель: {fmt(active.target)} Br
-              {stats.current <= active.target && <b> · достигнута!</b>}
-            </div>
-          </div>
+              <div className="pt-ranges">
+                {RANGE_OPTIONS.map((r) => (
+                  <button
+                    key={r.k}
+                    className={range === r.k ? "on" : ""}
+                    onClick={() => setRange(r.k)}
+                  >
+                    {r.l}
+                  </button>
+                ))}
+                <div className="pt-target-pill" style={{ marginLeft: "auto" }}>
+                  цель: {fmt(active.target)} Br
+                  {stats && stats.current <= active.target && <b> · достигнута!</b>}
+                </div>
+              </div>
 
-          <PriceChart data={view} target={active.target} />
-          <PriceSummary stats={stats} />
-          <PriceHistory events={history} />
+              {/* График или скелетон */}
+              {historyLoading ? (
+                <div className="pt-chart" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 250 }}>
+                  <span className="pt-spin" style={{ width: 22, height: 22, borderWidth: 2 }} />
+                </div>
+              ) : view.length > 0 ? (
+                <PriceChart data={view} target={active.target} />
+              ) : (
+                <div className="pt-chart" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 250, color: "var(--faint)", fontSize: 13 }}>
+                  Нет данных за выбранный период
+                </div>
+              )}
+
+              {stats && <PriceSummary stats={stats} />}
+              {!historyLoading && <PriceHistory events={history} />}
+            </>
+          )}
         </main>
       </div>
     </div>
