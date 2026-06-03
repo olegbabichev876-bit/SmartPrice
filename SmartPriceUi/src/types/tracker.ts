@@ -12,7 +12,8 @@ export interface TrackedItem {
   sub: string;
   url: string;
   series: PricePoint[];
-  target: number;
+  target: number;         // targetPrice from API
+  currentPrice?: number;  // latest price from API (before series loads)
 }
 
 export interface PriceStats {

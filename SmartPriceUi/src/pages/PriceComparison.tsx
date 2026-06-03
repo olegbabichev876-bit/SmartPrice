@@ -4,7 +4,26 @@ import { fmt, fmtDate } from "../utils/priceUtils";
 import ComparisonChart from "../components/ComparisonChart";
 
 export default function PriceComparison() {
-  const { product, chartData, snapshots, savings, savingsVerdict, range, setRange } = useComparison();
+  const {
+    product, chartData, snapshots, savings, savingsVerdict,
+    range, setRange, loading,
+  } = useComparison();
+
+  if (loading) {
+    return (
+      <div className="pt-root" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
+        <span className="pt-spin" style={{ width: 28, height: 28, borderWidth: 3 }} />
+      </div>
+    );
+  }
+
+  if (!snapshots.length) {
+    return (
+      <div className="pt-root" style={{ textAlign: "center", paddingTop: 60, color: "var(--mut)" }}>
+        Нет данных для сравнения.
+      </div>
+    );
+  }
 
   return (
     <div className="pt-root">
@@ -55,30 +74,33 @@ export default function PriceComparison() {
                   <span className="cmp-range-label">макс</span>
                   <span className="cmp-range-val">{fmt(s.max)}</span>
                 </div>
-                <a className="pt-url" href="#">{s.url} ↗</a>
+                <a className="pt-url" href={`https://${s.url}`} target="_blank" rel="noreferrer">
+                  {s.url} ↗
+                </a>
               </div>
             );
           })}
       </div>
 
-      {/* экономия */}
-      <div className="cmp-savings">
-        <div className="cmp-savings-main">
-          <div className="cmp-savings-label">Экономия прямо сейчас</div>
-          <div className="cmp-savings-value">{fmt(savings.savingsNow)} <i>Br</i></div>
-          <div className="cmp-savings-pct">
-            {savings.cheapest.name} дешевле {savings.priciest.name} на {savings.savingsPct.toFixed(1)}%
+      {/* блок экономии */}
+      {savings && (
+        <div className="cmp-savings">
+          <div className="cmp-savings-main">
+            <div className="cmp-savings-label">Экономия прямо сейчас</div>
+            <div className="cmp-savings-value">{fmt(savings.savingsNow)} <i>Br</i></div>
+            <div className="cmp-savings-pct">
+              {savings.cheapest.name} дешевле {savings.priciest.name} на {savings.savingsPct.toFixed(1)}%
+            </div>
           </div>
+          <div className="cmp-savings-hist">
+            <div className="cmp-savings-label">Макс. разрыв за период</div>
+            <div className="cmp-savings-value accent">{fmt(savings.maxHistoricSavings)} <i>Br</i></div>
+            <div className="cmp-savings-pct">был {fmtDate(savings.maxHistoricDate)}</div>
+          </div>
+          <div className="cmp-verdict">{savingsVerdict}</div>
         </div>
-        <div className="cmp-savings-hist">
-          <div className="cmp-savings-label">Макс. разрыв за период</div>
-          <div className="cmp-savings-value accent">{fmt(savings.maxHistoricSavings)} <i>Br</i></div>
-          <div className="cmp-savings-pct">был {fmtDate(savings.maxHistoricDate)}</div>
-        </div>
-        <div className="cmp-verdict">{savingsVerdict}</div>
-      </div>
+      )}
 
-      {/* график */}
       <ComparisonChart data={chartData} />
     </div>
   );
